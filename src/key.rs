@@ -2,38 +2,24 @@ use std::sync::OnceLock;
 
 use base64::Engine;
 
-use crate::dto::{KeyData, StandardHttpResponse};
-use crate::enums::HttpEndpoint;
+use crate::dto::KeyData;
+use crate::enums::StandardHttpRequestEnum;
 use crate::error::{AppError, AppResult};
+use crate::transport::request::StandardMetaRequest;
 
 /// 全局 AES 密钥缓存，一个 session 内只请求一次
 static AES_KEY: OnceLock<Vec<u8>> = OnceLock::new();
 
 /// 获取 AES 密钥（带缓存）
-pub async fn get_cached_key(server_url: &str) -> AppResult<&'static Vec<u8>> {
+///
+/// 首次调用通过 `StandardMetaRequest` 请求服务端，之后直接返回缓存值。
+pub async fn get_cached_key(client: &StandardMetaRequest) -> AppResult<&'static Vec<u8>> {
     if let Some(key) = AES_KEY.get() {
         return Ok(key);
     }
-    let key = fetch_public_key(server_url).await?;
-    let _ = AES_KEY.set(key);
-    Ok(AES_KEY.get().unwrap())
-}
 
-/// 从服务端获取 AES-128 密钥
-async fn fetch_public_key(server_url: &str) -> AppResult<Vec<u8>> {
-    let url = HttpEndpoint::KeyPublic.url(server_url);
-    let resp = reqwest::get(&url).await?;
-    let body: StandardHttpResponse<KeyData> = resp.json().await?;
-
-    eprintln!("服务端响应: code={}, msg={}", body.code, body.msg);
-
-    if body.is_error() {
-        return Err(AppError::BusinessError(body.code, body.msg));
-    }
-
-    let data = body
-        .data
-        .ok_or_else(|| AppError::Client("响应中 data 字段为空".into()))?;
+    let data: Option<KeyData> = client.send(StandardHttpRequestEnum::KeyPublic).await?;
+    let data = data.ok_or_else(|| AppError::Client("key/public 接口 data 为空".into()))?;
 
     let hex_str = extract_key(&data.key, data.index)
         .map_err(|e| AppError::Client(format!("密钥提取失败: {e}")))?;
@@ -45,7 +31,8 @@ async fn fetch_public_key(server_url: &str) -> AppResult<Vec<u8>> {
 
     eprintln!("AES 密钥字节长度: {} (期望 16)", key_bytes.len());
 
-    Ok(key_bytes)
+    let _ = AES_KEY.set(key_bytes);
+    Ok(AES_KEY.get().unwrap())
 }
 
 /// 从服务端返回的填充密钥中提取真实密钥
