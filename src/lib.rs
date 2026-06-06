@@ -1,4 +1,3 @@
-pub mod binding;
 pub mod config;
 pub mod connection;
 pub mod crypto;
@@ -7,6 +6,6 @@ pub mod enums;
 pub mod error;
 pub mod identity;
 pub mod instance_guard;
-pub mod key;
+pub mod service;
 pub mod telemetry;
 pub mod transport;

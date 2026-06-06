@@ -1,6 +1,6 @@
 use crate::config::AppConfig;
-use crate::key;
 use crate::error::AppResult;
+use crate::service::key;
 use crate::transport::request::StandardMetaRequest;
 // TODO Phase 3: 恢复 WebSocket 时取消注释
 // use crate::protocol::codec;

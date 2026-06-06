@@ -1,12 +1,11 @@
 use std::future::pending;
 
-use ai_agent_client::binding;
 use ai_agent_client::config::AppConfig;
 use ai_agent_client::connection::Manager;
-use ai_agent_client::key;
 use ai_agent_client::error::AppResult;
 use ai_agent_client::identity::Identity;
 use ai_agent_client::instance_guard::{FileLockGuard, InstanceGuard};
+use ai_agent_client::service::{bind, key};
 use ai_agent_client::telemetry;
 use ai_agent_client::transport::request::StandardMetaRequest;
 
@@ -24,7 +23,7 @@ async fn main() -> AppResult<()> {
     // ★ 首次运行：引导用户输入邮箱并绑定身份（加密存储）
     if !Identity::is_bound(&config.data_dir) {
         eprintln!("首次运行，请绑定客户端身份");
-        let identity = binding::run_binding_flow(&client, aes_key).await?;
+        let identity = bind::run_binding_flow(&client, aes_key).await?;
         identity.save_encrypted(&config.data_dir, aes_key)?;
         eprintln!("绑定成功！邮箱: {}", identity.email);
     }
