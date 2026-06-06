@@ -8,6 +8,7 @@ use cbc::{Decryptor, Encryptor};
 use rand::rngs::OsRng;
 use rand::RngCore;
 
+use crate::dto::{KeyData, StandardHttpResponse};
 use crate::error::{AppError, AppResult};
 
 type AesCbc = Encryptor<Aes128>;
@@ -94,23 +95,19 @@ pub async fn get_cached_key(server_url: &str) -> AppResult<&'static Vec<u8>> {
 pub async fn fetch_public_key(server_url: &str) -> AppResult<Vec<u8>> {
     let url = format!("{}/key/public", server_url.trim_end_matches('/'));
     let resp = reqwest::get(&url).await?;
-    let body: serde_json::Value = resp.json().await?;
+    let body: StandardHttpResponse<KeyData> = resp.json().await?;
 
-    eprintln!("服务端完整响应: {body}");
+    eprintln!("服务端响应: code={}, msg={}", body.code, body.msg);
+
+    if !body.is_success() {
+        return Err(AppError::BusinessError(body.code, body.msg));
+    }
 
     let data = body
-        .get("data")
-        .ok_or_else(|| AppError::WebSocket("响应中无 data 字段".into()))?;
-    let filled_key = data
-        .get("key")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| AppError::WebSocket("data 中无 key 字段".into()))?;
-    let index = data
-        .get("index")
-        .and_then(|v| v.as_u64())
-        .ok_or_else(|| AppError::WebSocket("data 中无 index 字段".into()))? as usize;
+        .data
+        .ok_or_else(|| AppError::WebSocket("响应中 data 字段为空".into()))?;
 
-    let hex_str = extract_key(filled_key, index)
+    let hex_str = extract_key(&data.key, data.index)
         .map_err(|e| AppError::WebSocket(format!("密钥提取失败: {e}")))?;
 
     eprintln!("提取后的 hex 密钥字符串: {hex_str}");

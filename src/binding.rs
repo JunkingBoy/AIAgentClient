@@ -1,5 +1,6 @@
 use crate::config::AppConfig;
 use crate::crypto;
+use crate::dto::StandardHttpResponse;
 use crate::error::{AppError, AppResult};
 use crate::identity::Identity;
 
@@ -66,17 +67,23 @@ async fn bind_to_server(server_url: &str, aes_key: &[u8], client_id: &str, email
         .header("Content-Type", "application/json")
         .json(&body)
         .send().await?;
-    let status = resp.status();
-    let resp_body: serde_json::Value = resp.json().await?;
 
-    eprintln!("服务端绑定响应全文: {resp_body}");
+    // 检查 HTTP 状态码
+    let http_status = resp.status();
+    if !http_status.is_success() {
+        let text = resp.text().await.unwrap_or_default();
+        return Err(AppError::WebSocket(format!(
+            "HTTP {}: {}",
+            http_status, text
+        )));
+    }
 
-    if !status.is_success() {
-        let msg = resp_body
-            .get("msg")
-            .and_then(|v| v.as_str())
-            .unwrap_or("绑定失败");
-        return Err(AppError::WebSocket(msg.to_string()));
+    // 解析业务信封
+    let body: StandardHttpResponse<serde_json::Value> = resp.json().await?;
+    eprintln!("服务端绑定响应: code={}, msg={}", body.code, body.msg);
+
+    if !body.is_success() {
+        return Err(AppError::BusinessError(body.code, body.msg));
     }
 
     Ok(())

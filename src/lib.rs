@@ -3,6 +3,7 @@ pub mod browser;
 pub mod config;
 pub mod connection;
 pub mod crypto;
+pub mod dto;
 pub mod error;
 pub mod handler;
 pub mod identity;

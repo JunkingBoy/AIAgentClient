@@ -23,6 +23,9 @@ pub enum AppError {
     #[error("输入验证失败: {0}")]
     InvalidInput(String),
 
+    #[error("业务错误 (code={0}): {1}")]
+    BusinessError(i32, String),
+
     #[error("WebSocket 错误: {0}")]
     WebSocket(String),
 }
