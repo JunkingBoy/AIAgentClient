@@ -1,0 +1,7 @@
+/target
+.env.dev
+.env
+docs/
+.data
+examples/
+.cargo
