@@ -34,7 +34,7 @@ impl WsConnection {
         tracing::debug!("正在连接 WebSocket: {}", url);
         let (stream, _) = connect_async(&url)
             .await
-            .map_err(|e| AppError::WebSocket(format!("连接失败: {e}")))?;
+            .map_err(|e| AppError::Client(format!("连接失败: {e}")))?;
 
         Ok(Self { stream })
     }
@@ -44,14 +44,14 @@ impl WsConnection {
         self.stream
             .send(msg)
             .await
-            .map_err(|e| AppError::WebSocket(format!("发送失败: {e}")))
+            .map_err(|e| AppError::Client(format!("发送失败: {e}")))
     }
 
     /// 接收一条 WebSocket 帧，`None` 表示连接已关闭
     pub async fn recv(&mut self) -> AppResult<Option<Message>> {
         match self.stream.next().await {
             Some(Ok(msg)) => Ok(Some(msg)),
-            Some(Err(e)) => Err(AppError::WebSocket(format!("接收失败: {e}"))),
+            Some(Err(e)) => Err(AppError::Client(format!("接收失败: {e}"))),
             None => Ok(None),
         }
     }
@@ -61,6 +61,6 @@ impl WsConnection {
         self.stream
             .close(None)
             .await
-            .map_err(|e| AppError::WebSocket(format!("关闭失败: {e}")))
+            .map_err(|e| AppError::Client(format!("关闭失败: {e}")))
     }
 }

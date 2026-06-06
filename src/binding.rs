@@ -1,6 +1,7 @@
 use crate::config::AppConfig;
 use crate::crypto;
 use crate::dto::StandardHttpResponse;
+use crate::enums::HttpEndpoint;
 use crate::error::{AppError, AppResult};
 use crate::identity::Identity;
 
@@ -47,7 +48,7 @@ fn validate_email(email: &str) -> AppResult<()> {
 /// }
 /// ```
 async fn bind_to_server(server_url: &str, aes_key: &[u8], client_id: &str, email: &str) -> AppResult<()> {
-    let url = format!("{}/user/bind", server_url.trim_end_matches('/'));
+    let url = HttpEndpoint::UserBind.url(server_url);
 
     let enc_client_id = crypto::encrypt(aes_key, client_id)?;
     let enc_email = crypto::encrypt(aes_key, email)?;
@@ -72,7 +73,7 @@ async fn bind_to_server(server_url: &str, aes_key: &[u8], client_id: &str, email
     let http_status = resp.status();
     if !http_status.is_success() {
         let text = resp.text().await.unwrap_or_default();
-        return Err(AppError::WebSocket(format!(
+        return Err(AppError::Client(format!(
             "HTTP {}: {}",
             http_status, text
         )));
@@ -91,7 +92,7 @@ async fn bind_to_server(server_url: &str, aes_key: &[u8], client_id: &str, email
 
 /// 运行完整的绑定流程：终端提示 → 加密 → 请求服务端 → 返回 Identity
 ///
-/// `aes_key` 由调用方传入（来自 `crypto::get_cached_key`）。
+/// `aes_key` 由调用方传入（来自 `key::get_cached_key`）。
 /// 调用方负责将返回的 Identity 加密保存到磁盘。
 pub async fn run_binding_flow(config: &AppConfig, aes_key: &[u8]) -> AppResult<Identity> {
 

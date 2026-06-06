@@ -1,5 +1,5 @@
 use crate::config::AppConfig;
-use crate::crypto;
+use crate::key;
 use crate::error::AppResult;
 // TODO Phase 3: 恢复 WebSocket 时取消注释
 // use crate::protocol::codec;
@@ -44,7 +44,7 @@ impl Manager {
 
     /// 从服务端获取 AES 密钥（缓存，仅首次请求网络）
     async fn authenticate(&self) -> AppResult<Vec<u8>> {
-        let key_bytes = crypto::get_cached_key(&self.config.server_url).await?.clone();
+        let key_bytes = key::get_cached_key(&self.config.server_url).await?.clone();
         tracing::info!("密钥获取成功");
         Ok(key_bytes)
     }

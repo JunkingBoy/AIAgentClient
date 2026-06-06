@@ -3,7 +3,7 @@ use std::future::pending;
 use ai_agent_client::binding;
 use ai_agent_client::config::AppConfig;
 use ai_agent_client::connection::Manager;
-use ai_agent_client::crypto;
+use ai_agent_client::key;
 use ai_agent_client::error::AppResult;
 use ai_agent_client::identity::Identity;
 use ai_agent_client::instance_guard::{FileLockGuard, InstanceGuard};
@@ -15,7 +15,7 @@ async fn main() -> AppResult<()> {
     std::fs::create_dir_all(&config.data_dir)?;
 
     // ★ 提前获取密钥（后续加密 identity 和 WS 通信都需要）
-    let aes_key = crypto::get_cached_key(&config.server_url).await?;
+    let aes_key = key::get_cached_key(&config.server_url).await?;
 
     // ★ 首次运行：引导用户输入邮箱并绑定身份（加密存储）
     if !Identity::is_bound(&config.data_dir) {
