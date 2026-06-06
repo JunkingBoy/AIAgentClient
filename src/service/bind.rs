@@ -1,7 +1,8 @@
-use crate::config::AppConfig;
 use crate::crypto;
+use crate::enums::StandardHttpRequestEnum;
 use crate::error::{AppError, AppResult};
 use crate::identity::Identity;
+use crate::transport::request::StandardMetaRequest;
 
 /// 在终端提示用户输入邮箱
 ///
@@ -37,70 +38,33 @@ fn validate_email(email: &str) -> AppResult<()> {
 /// 发送绑定请求到服务端
 ///
 /// `client_id` 和 `email` 分别用 AES-128-CBC 加密后发送。
-///
-/// POST `{server_url}/user/bind`
-/// ```json
-/// {
-///   "client_id": "<base64(iv + ciphertext)>",
-///   "email": "<base64(iv + ciphertext)>"
-/// }
-/// ```
-async fn bind_to_server(server_url: &str, aes_key: &[u8], client_id: &str, email: &str) -> AppResult<()> {
-    let url = format!("{}/user/bind", server_url.trim_end_matches('/'));
-
+async fn bind_to_server(client: &StandardMetaRequest, aes_key: &[u8], client_id: &str, email: &str) -> AppResult<()> {
     let enc_client_id = crypto::encrypt(aes_key, client_id)?;
     let enc_email = crypto::encrypt(aes_key, email)?;
 
-    let body = serde_json::json!({
-        "client_id": enc_client_id,
-        "email": enc_email,
-    });
-
-    eprintln!("正在发送绑定请求到 {url}");
     eprintln!("加密后 client_id: {enc_client_id}");
     eprintln!("加密后 email: {enc_email}");
 
-    let client = reqwest::Client::new();
-    let resp = client
-        .post(&url)
-        .header("Content-Type", "application/json")
-        .json(&body)
-        .send().await?;
-    let status = resp.status();
-    let resp_body: serde_json::Value = resp.json().await?;
-
-    eprintln!("服务端绑定响应全文: {resp_body}");
-
-    if !status.is_success() {
-        let msg = resp_body
-            .get("msg")
-            .and_then(|v| v.as_str())
-            .unwrap_or("绑定失败");
-        return Err(AppError::WebSocket(msg.to_string()));
-    }
+    let _: Option<serde_json::Value> = client
+        .send(StandardHttpRequestEnum::UserBind {
+            client_id: enc_client_id,
+            email: enc_email,
+        })
+        .await?;
 
     Ok(())
 }
 
 /// 运行完整的绑定流程：终端提示 → 加密 → 请求服务端 → 返回 Identity
 ///
-/// `aes_key` 由调用方传入（来自 `crypto::get_cached_key`）。
+/// `aes_key` 由调用方传入（来自 `service::key::get_cached_key`）。
 /// 调用方负责将返回的 Identity 加密保存到磁盘。
-pub async fn run_binding_flow(config: &AppConfig, aes_key: &[u8]) -> AppResult<Identity> {
-
-    // 2. 提示输入邮箱
+pub async fn run_binding_flow(client: &StandardMetaRequest, aes_key: &[u8]) -> AppResult<Identity> {
     let email = prompt_email()?;
-
-    // 3. 校验邮箱
     validate_email(&email)?;
-
-    // 4. 生成 client_id
     let client_id = Identity::generate_client_id();
+    bind_to_server(client, aes_key, &client_id, &email).await?;
 
-    // 5. 加密后发送绑定请求
-    bind_to_server(&config.server_url, aes_key, &client_id, &email).await?;
-
-    // 6. 构造身份信息（记录 Unix 时间戳）
     let bound_at = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs().to_string())

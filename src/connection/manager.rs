@@ -1,6 +1,7 @@
 use crate::config::AppConfig;
-use crate::crypto;
 use crate::error::AppResult;
+use crate::service::key;
+use crate::transport::request::StandardMetaRequest;
 // TODO Phase 3: 恢复 WebSocket 时取消注释
 // use crate::protocol::codec;
 // use crate::transport::ws::WsConnection;
@@ -14,13 +15,13 @@ use crate::error::AppResult;
 /// - 事件循环：收消息 → 解码 → 派发 → 回传结果
 /// - TODO Phase 3: 心跳 + 自动重连
 pub struct Manager {
-    config: AppConfig,
+    client: StandardMetaRequest,
 }
 
 impl Manager {
     pub fn new(config: &AppConfig) -> Self {
         Self {
-            config: config.clone(),
+            client: StandardMetaRequest::new(&config.server_url),
         }
     }
 
@@ -44,7 +45,7 @@ impl Manager {
 
     /// 从服务端获取 AES 密钥（缓存，仅首次请求网络）
     async fn authenticate(&self) -> AppResult<Vec<u8>> {
-        let key_bytes = crypto::get_cached_key(&self.config.server_url).await?.clone();
+        let key_bytes = key::get_cached_key(&self.client).await?.clone();
         tracing::info!("密钥获取成功");
         Ok(key_bytes)
     }

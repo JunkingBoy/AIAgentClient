@@ -7,9 +7,6 @@ use crate::crypto;
 use crate::error::AppResult;
 
 /// 客户端身份信息
-///
-/// 首次绑定时生成，AES 加密后持久化到 `{data_dir}/identity.json`。
-/// 后续启动先拿密钥，再解密读取。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Identity {
     pub client_id: String,
@@ -29,7 +26,6 @@ impl Identity {
         Uuid::new_v4().to_string()
     }
 
-    /// 快速判断是否已绑定（identity 文件是否存在）
     pub fn is_bound(data_dir: &Path) -> bool {
         Self::path(data_dir).exists()
     }
@@ -57,11 +53,6 @@ impl Identity {
         }
         // 读取加密载荷 → 提取 base64 字符串 → 解密 → 反序列化
         let content = std::fs::read_to_string(path)?;
-        // 兼容旧版明文格式（直接 JSON 解析）
-        if let Ok(identity) = serde_json::from_str::<Self>(&content) {
-            return Ok(Some(identity));
-        }
-        // 新版加密格式
         let payload: EncryptedPayload = serde_json::from_str(&content)?;
         let json_str = crypto::decrypt(aes_key, &payload.encrypted)?;
         let identity = serde_json::from_str(&json_str)?;
