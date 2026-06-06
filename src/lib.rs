@@ -1,15 +1,12 @@
 pub mod binding;
-pub mod browser;
 pub mod config;
 pub mod connection;
 pub mod crypto;
 pub mod dto;
 pub mod enums;
 pub mod error;
-pub mod handler;
 pub mod identity;
 pub mod instance_guard;
 pub mod key;
-pub mod protocol;
 pub mod telemetry;
 pub mod transport;

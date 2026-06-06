@@ -19,7 +19,7 @@ pub async fn get_cached_key(client: &StandardMetaRequest) -> AppResult<&'static 
     }
 
     let data: Option<KeyData> = client.send(StandardHttpRequestEnum::KeyPublic).await?;
-    let data = data.ok_or_else(|| AppError::Client("key/public 接口 data 为空".into()))?;
+    let data = data.ok_or_else(|| AppError::Client("接口响应数据为空".into()))?;
 
     let hex_str = extract_key(&data.key, data.index)
         .map_err(|e| AppError::Client(format!("密钥提取失败: {e}")))?;
