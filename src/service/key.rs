@@ -11,8 +11,6 @@ use crate::transport::request::StandardMetaRequest;
 static AES_KEY: OnceLock<Vec<u8>> = OnceLock::new();
 
 /// 获取 AES 密钥（带缓存）
-///
-/// 首次调用通过 `StandardMetaRequest` 请求服务端，之后直接返回缓存值。
 pub async fn get_cached_key(client: &StandardMetaRequest) -> AppResult<&'static Vec<u8>> {
     if let Some(key) = AES_KEY.get() {
         return Ok(key);
@@ -36,9 +34,6 @@ pub async fn get_cached_key(client: &StandardMetaRequest) -> AppResult<&'static 
 }
 
 /// 从服务端返回的填充密钥中提取真实密钥
-///
-/// 服务端在原始密钥的 `index` 位置插入 16 字节随机填充后 base64 编码，
-/// 客户端解码后去掉这 16 字节即得到真实密钥。
 pub fn extract_key(filled_key: &str, index: usize) -> Result<String, String> {
     let decoded = engine()
         .decode(filled_key)
@@ -50,9 +45,7 @@ pub fn extract_key(filled_key: &str, index: usize) -> Result<String, String> {
             decoded.len()
         ));
     }
-
     let raw: Vec<u8> = [&decoded[..index], &decoded[index + 16..]].concat();
-
     String::from_utf8(raw).map_err(|e| format!("密钥不是有效的 UTF-8: {e}"))
 }
 
