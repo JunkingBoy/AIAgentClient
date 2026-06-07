@@ -35,8 +35,6 @@ impl Identity {
     }
 
     /// 加密保存身份信息到 `{data_dir}/identity.json`
-    ///
-    /// 将自身序列化为 JSON → AES-128-CBC 加密 → base64 → 写入文件
     pub fn save_encrypted(&self, data_dir: &Path, aes_key: &[u8]) -> AppResult<()> {
         let plaintext = serde_json::to_string(self)?;
         let encrypted = crypto::encrypt(aes_key, &plaintext)?;
@@ -46,7 +44,7 @@ impl Identity {
     }
 
     /// 从 `{data_dir}/identity.json` 解密加载身份信息
-    pub fn load_encrypted(data_dir: &Path, aes_key: &[u8]) -> AppResult<Option<Self>> {
+    pub fn load_encrypted(data_dir: &Path) -> AppResult<Option<Self>> {
         let path = Self::path(data_dir);
         if !path.exists() {
             return Ok(None);
@@ -54,7 +52,7 @@ impl Identity {
         // 读取加密载荷 → 提取 base64 字符串 → 解密 → 反序列化
         let content = std::fs::read_to_string(path)?;
         let payload: EncryptedPayload = serde_json::from_str(&content)?;
-        let json_str = crypto::decrypt(aes_key, &payload.encrypted)?;
+        let json_str = crypto::decrypt(&payload.encrypted)?;
         let identity = serde_json::from_str(&json_str)?;
         Ok(Some(identity))
     }

@@ -45,7 +45,7 @@ impl Manager {
 
     /// 从服务端获取 AES 密钥（缓存，仅首次请求网络）
     async fn authenticate(&self) -> AppResult<Vec<u8>> {
-        let key_bytes = key::get_cached_key(&self.client).await?.clone();
+        let key_bytes = key::get_aes_key_by_http(&self.client).await?.clone();
         tracing::info!("密钥获取成功");
         Ok(key_bytes)
     }

@@ -6,6 +6,7 @@ use cbc::{Decryptor, Encryptor};
 use rand::rngs::OsRng;
 use rand::RngCore;
 
+use crate::service::key;
 use crate::error::{AppError, AppResult};
 
 type AesCbc = Encryptor<Aes128>;
@@ -35,7 +36,8 @@ pub fn encrypt(key: &[u8], plaintext: &str) -> AppResult<String> {
 }
 
 /// AES-128-CBC 解密，输入为 `encrypt()` 输出的 base64 字符串
-pub fn decrypt(key: &[u8], data: &str) -> AppResult<String> {
+pub fn decrypt(data: &str) -> AppResult<String> {
+    let key = key::get_cached_aes_key()?;
     let encrypted = engine()
         .decode(data)
         .map_err(|e| AppError::Client(format!("base64 解码失败: {e}")))?;

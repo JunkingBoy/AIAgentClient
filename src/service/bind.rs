@@ -36,8 +36,6 @@ fn validate_email(email: &str) -> AppResult<()> {
 }
 
 /// 发送绑定请求到服务端
-///
-/// `client_id` 和 `email` 分别用 AES-128-CBC 加密后发送。
 async fn bind_to_server(client: &StandardMetaRequest, aes_key: &[u8], client_id: &str, email: &str) -> AppResult<()> {
     let enc_client_id = crypto::encrypt(aes_key, client_id)?;
     let enc_email = crypto::encrypt(aes_key, email)?;
@@ -55,9 +53,6 @@ async fn bind_to_server(client: &StandardMetaRequest, aes_key: &[u8], client_id:
     Ok(())
 }
 
-/// 运行完整的绑定流程：终端提示 → 加密 → 请求服务端 → 返回 Identity
-///
-/// `aes_key` 由调用方传入（来自 `service::key::get_cached_key`）。
 /// 调用方负责将返回的 Identity 加密保存到磁盘。
 pub async fn run_binding_flow(client: &StandardMetaRequest, aes_key: &[u8]) -> AppResult<Identity> {
     let email = prompt_email()?;

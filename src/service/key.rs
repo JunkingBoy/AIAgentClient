@@ -10,27 +10,22 @@ use crate::transport::request::StandardMetaRequest;
 /// 全局 AES 密钥缓存，一个 session 内只请求一次
 static AES_KEY: OnceLock<Vec<u8>> = OnceLock::new();
 
-/// 获取 AES 密钥（带缓存）
-pub async fn get_cached_key(client: &StandardMetaRequest) -> AppResult<&'static Vec<u8>> {
-    if let Some(key) = AES_KEY.get() {
-        return Ok(key);
-    }
-
+pub async fn get_aes_key_by_http(client: &StandardMetaRequest) -> AppResult<&'static Vec<u8>> {
     let data: Option<KeyData> = client.send(StandardHttpRequestEnum::KeyPublic).await?;
     let data = data.ok_or_else(|| AppError::Client("接口响应数据为空".into()))?;
-
     let hex_str = extract_key(&data.key, data.index)
         .map_err(|e| AppError::Client(format!("密钥提取失败: {e}")))?;
-
-    eprintln!("提取后的 hex 密钥字符串: {hex_str}");
-
     let key_bytes = hex_decode(&hex_str)
         .map_err(|e| AppError::Client(format!("hex 解码失败: {e}")))?;
-
-    eprintln!("AES 密钥字节长度: {} (期望 16)", key_bytes.len());
-
     let _ = AES_KEY.set(key_bytes);
     Ok(AES_KEY.get().unwrap())
+}
+
+/// 从本地缓存获取 AES 密钥（需先调用 get_aes_key_by_http 完成初始化）
+pub fn get_cached_aes_key() -> AppResult<&'static Vec<u8>> {
+    AES_KEY
+        .get()
+        .ok_or_else(|| AppError::Client("AES 密钥未初始化，请先初始化密钥!".into()))
 }
 
 /// 从服务端返回的填充密钥中提取真实密钥

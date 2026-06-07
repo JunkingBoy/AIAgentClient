@@ -18,7 +18,7 @@ async fn main() -> AppResult<()> {
     let client = StandardMetaRequest::new(&config.server_url);
 
     // ★ 提前获取密钥（后续加密 identity 和 WS 通信都需要）
-    let aes_key = key::get_cached_key(&client).await?;
+    let aes_key = key::get_aes_key_by_http(&client).await?;
 
     // ★ 首次运行：引导用户输入邮箱并绑定身份（加密存储）
     if !Identity::is_bound(&config.data_dir) {
