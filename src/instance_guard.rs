@@ -28,7 +28,7 @@ impl InstanceGuard for FileLockGuard {
                     lock_path.display(),
                     e
                 );
-                AppError::InstanceExists(msg)
+                AppError::Client(msg)
             })?;
 
         file.try_lock_exclusive().map_err(|_| {
@@ -36,7 +36,7 @@ impl InstanceGuard for FileLockGuard {
                 "检测到已有实例在运行（锁文件: {}），请勿重复启动",
                 lock_path.display()
             );
-            AppError::InstanceExists(msg)
+            AppError::Client(msg)
         })?;
 
         Ok(Self { _file: file })

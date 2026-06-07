@@ -27,10 +27,10 @@ pub fn prompt_email() -> AppResult<String> {
 /// 校验邮箱格式（基础检查）
 fn validate_email(email: &str) -> AppResult<()> {
     if email.is_empty() {
-        return Err(AppError::InvalidInput("邮箱不能为空".into()));
+        return Err(AppError::Client("邮箱不能为空".into()));
     }
     if !email.contains('@') || !email.contains('.') {
-        return Err(AppError::InvalidInput("邮箱格式不正确".into()));
+        return Err(AppError::Client("邮箱格式不正确".into()));
     }
     Ok(())
 }

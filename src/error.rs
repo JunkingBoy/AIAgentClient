@@ -8,9 +8,6 @@ pub enum AppError {
     #[error("I/O 错误: {0}")]
     Io(#[from] io::Error),
 
-    #[error("已有实例在运行: {0}")]
-    InstanceExists(String),
-
     #[error("HTTP 请求失败: {0}")]
     Http(#[from] reqwest::Error),
 
@@ -19,9 +16,6 @@ pub enum AppError {
 
     #[error("用户取消了操作")]
     UserCancel,
-
-    #[error("输入验证失败: {0}")]
-    InvalidInput(String),
 
     #[error("客户端错误: {0}")]
     Client(String),
